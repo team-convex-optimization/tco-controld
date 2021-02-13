@@ -1,0 +1,4 @@
+[submodule "lib/tco_libd"]
+	url = https://github.com/team-convex-optimization/tco-libd.git
+[submodule "lib/tco_shmem"]
+	url = https://github.com/team-convex-optimization/tco-shmem.git

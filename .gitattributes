@@ -1,0 +1,9 @@
+# Correctly categorize C files
+*.h linguist-language=C
+*.c linguist-language=C
+
+# Make sure all these files have LF line endings
+*.c text
+*.h text
+*.md text
+*.sh text
