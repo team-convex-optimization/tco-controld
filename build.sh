@@ -15,6 +15,8 @@ clang \
     -I ../lib/tco_libd/include \
     -I ../lib/tco_shmem \
     ../code/*.c \
+    -l rt \
+    -l pthread \
     tco_libd.a \
     -o tco_controld.bin
 popd
