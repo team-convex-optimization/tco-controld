@@ -34,6 +34,24 @@ static void handle_signals(int sig)
             log_error("sem_post: %s", strerror(errno));
         }
     }
+    if (sem_wait(shmem_sem_control) == -1)
+    {
+        log_error("sem_wait: %s", strerror(errno));
+        exit(0);
+    }
+    shmem_control_open = 1;
+    /* START: Critical section */
+    shmem_control->ch[0].active = 0;
+    shmem_control->ch[0].pulse_frac = 0;
+    shmem_control->ch[1].active = 0;
+    shmem_control->ch[1].pulse_frac = 0;
+    /* END: Critical section */
+    if (sem_post(shmem_sem_control) == -1)
+    {
+        log_error("sem_post: %s", strerror(errno));
+        exit(0); /* XXX: This can potentially lead to deadlocks. */
+    }
+    shmem_control_open = 0;
     exit(0);
 }
 
@@ -100,7 +118,7 @@ int main(int argc, char const *argv[])
             }
             else
             {
-                steering_angle = waypts[0][0] / (TCO_FRAME_WIDTH / 2.0f);
+                steering_angle = (waypts[0][0] - TCO_FRAME_WIDTH) / 2.0f;
                 throttle = 0.01;
             }
 
