@@ -92,8 +92,8 @@ int main(int argc, char const *argv[])
     float steer_frac_raw = 0;
     float throttle_frac_raw = 0;
 
-    uint16_t waypts[TCO_PLAN_WAYPTS_N][2] = {0};
-    uint8_t waypts_valid = 0;
+    float target = 0;
+    uint8_t target_valid = 0;
     uint32_t frame_id = 0;
     uint32_t frame_id_last = 0;
     while (1)
@@ -105,11 +105,8 @@ int main(int argc, char const *argv[])
         }
         /* START: Critical section */
         shmem_plan_open = 1;
-        waypts_valid = shmem_plan->valid;
-        if (waypts_valid)
-        {
-            memcpy(waypts, shmem_plan->waypts, TCO_PLAN_WAYPTS_N * 2 * sizeof(shmem_plan->waypts[0][0]));
-        }
+        target_valid = shmem_plan->valid;
+        target = shmem_plan->target;
         frame_id = shmem_plan->frame_id;
         /* END: Critical section */
         if (sem_post(shmem_sem_plan) == -1)
@@ -125,9 +122,9 @@ int main(int argc, char const *argv[])
         }
         frame_id_last = frame_id;
 
-        if (waypts_valid)
+        if (target_valid)
         {
-            if (waypts[0][0] >= TCO_FRAME_WIDTH || waypts[0][1] >= TCO_FRAME_HEIGHT)
+            if (target > 1.0f || target < -1.0f)
             {
                 steer_frac_raw = 0.0f;
                 throttle_frac_raw = 0.0f;
@@ -135,9 +132,9 @@ int main(int argc, char const *argv[])
             else
             {
                 /* At 30fps, dt is 33 milliseconds. */
-                steer_frac_raw = pid_step_steer(-(((waypts[0][0] / (float)TCO_FRAME_WIDTH) * 2.0f) - 1.0f), 0.0f, (1.0f / 30.0f));
+                steer_frac_raw = pid_step_steer(target, 0.0f, (1.0f / 30.0f));
                 throttle_frac_raw = 0.01f;
-                printf("steer %f (%f)\n", steer_frac_raw, -(((waypts[0][0] / (float)TCO_FRAME_WIDTH) * 2.0f) - 1.0f));
+                printf("steer %f (%f)\n", steer_frac_raw, target);
             }
 
             if (sem_wait(shmem_sem_control) == -1)
