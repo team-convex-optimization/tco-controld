@@ -54,7 +54,6 @@ static float pid_step(
     {
         u = -1.0f;
     }
-    u = (u + 1.0f) / 2.0f;
     *eprev = e;
     return u;
 }
