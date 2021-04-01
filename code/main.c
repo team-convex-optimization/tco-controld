@@ -89,11 +89,13 @@ int main(int argc, char const *argv[])
     }
 
     /* Between -1.0 and 1.0 */
-    float steering_angle = 0;
-    float throttle = 0;
+    float steer_frac_raw = 0;
+    float throttle_frac_raw = 0;
 
     uint16_t waypts[TCO_PLAN_WAYPTS_N][2] = {0};
     uint8_t waypts_valid = 0;
+    uint32_t frame_id = 0;
+    uint32_t frame_id_last = 0;
     while (1)
     {
         if (sem_wait(shmem_sem_plan) == -1)
@@ -101,13 +103,14 @@ int main(int argc, char const *argv[])
             log_error("sem_wait: %s", strerror(errno));
             goto handle_error_and_exit;
         }
-        shmem_plan_open = 1;
         /* START: Critical section */
+        shmem_plan_open = 1;
         waypts_valid = shmem_plan->valid;
         if (waypts_valid)
         {
             memcpy(waypts, shmem_plan->waypts, TCO_PLAN_WAYPTS_N * 2 * sizeof(shmem_plan->waypts[0][0]));
         }
+        frame_id = shmem_plan->frame_id;
         /* END: Critical section */
         if (sem_post(shmem_sem_plan) == -1)
         {
@@ -116,23 +119,25 @@ int main(int argc, char const *argv[])
         }
         shmem_plan_open = 0;
 
+        if (frame_id == frame_id_last)
+        {
+            continue;
+        }
+        frame_id_last = frame_id;
+
         if (waypts_valid)
         {
             if (waypts[0][0] >= TCO_FRAME_WIDTH || waypts[0][1] >= TCO_FRAME_HEIGHT)
             {
-                steering_angle = 0.0;
-                throttle = 0.0;
+                steer_frac_raw = 0.0f;
+                throttle_frac_raw = 0.0f;
             }
             else
             {
-                steering_angle = (((waypts[0][0] / (float)TCO_FRAME_WIDTH) * 2.0f) - 1.0f);
-                steering_angle *= 1.3;
-                if (steering_angle > 1.0f)
-                {
-                    steering_angle = 1.0f;
-                }
-                printf("Steer: %f\n", steering_angle);
-                throttle = 0.01;
+                /* At 30fps, dt is 33 milliseconds. */
+                steer_frac_raw = pid_step_steer(-(((waypts[0][0] / (float)TCO_FRAME_WIDTH) * 2.0f) - 1.0f), 0.0f, 0.03f);
+                throttle_frac_raw = 0.01f;
+                printf("steer %f (%f)\n", steer_frac_raw, -(((waypts[0][0] / (float)TCO_FRAME_WIDTH) * 2.0f) - 1.0f));
             }
 
             if (sem_wait(shmem_sem_control) == -1)
@@ -140,14 +145,14 @@ int main(int argc, char const *argv[])
                 log_error("sem_wait: %s", strerror(errno));
                 goto handle_error_and_exit;
             }
-            shmem_control_open = 1;
             /* START: Critical section */
+            shmem_control_open = 1;
             shmem_control->valid = 1;
             shmem_control->ch[0].active = 1;
-            shmem_control->ch[0].pulse_frac = (throttle + 1.0f) / 2.0f;
+            shmem_control->ch[0].pulse_frac = (throttle_frac_raw + 1.0f) / 2.0f;
 
             shmem_control->ch[1].active = 1;
-            shmem_control->ch[1].pulse_frac = (steering_angle + 1.0f) / 2.0f;
+            shmem_control->ch[1].pulse_frac = (steer_frac_raw + 1.0f) / 2.0f;
             /* END: Critical section */
             if (sem_post(shmem_sem_control) == -1)
             {

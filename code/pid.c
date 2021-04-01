@@ -1,6 +1,6 @@
 #include "pid.h"
 
-#define PID_EINT_MAX 1
+#define PID_EINT_MAX 0.5f
 
 /* PID state */
 static float pid_eint_steer = 0;
@@ -9,12 +9,12 @@ static float pid_eint_throttle = 0;
 static float pid_eprev_throttle = 0;
 
 static float const pid_kp_steer = 1;
-static float const pid_ki_steer = 1;
-static float const pid_kd_steer = 1;
+static float const pid_ki_steer = 0.1;
+static float const pid_kd_steer = 0.4;
 
 static float const pid_kp_throttle = 1;
-static float const pid_ki_throttle = 1;
-static float const pid_kd_throttle = 1;
+static float const pid_ki_throttle = 0;
+static float const pid_kd_throttle = 0;
 
 /**
  * @brief Slightly improved PID controller.
