@@ -9,6 +9,8 @@
 #include "tco_libd.h"
 #include "tco_shmem.h"
 
+#include "pid.h"
+
 int log_level = LOG_DEBUG | LOG_ERROR | LOG_INFO;
 
 static struct tco_shmem_data_control *shmem_control;
@@ -18,6 +20,11 @@ static sem_t *shmem_sem_plan;
 static uint8_t shmem_control_open = 0;
 static uint8_t shmem_plan_open = 0;
 
+/**
+ * @brief Handler for signals. This ensures that deadlocks in shmems do not occur and  when
+ * clontrold is closed, control shmem is reset.
+ * @param sig Signal number. This is ignored since this handler is registered for the right signals already.
+ */
 static void handle_signals(int sig)
 {
     if (shmem_control_open)
@@ -118,7 +125,13 @@ int main(int argc, char const *argv[])
             }
             else
             {
-                steering_angle = (waypts[0][0] - TCO_FRAME_WIDTH) / 2.0f;
+                steering_angle = (((waypts[0][0] / (float)TCO_FRAME_WIDTH) * 2.0f) - 1.0f);
+                steering_angle *= 1.3;
+                if (steering_angle > 1.0f)
+                {
+                    steering_angle = 1.0f;
+                }
+                printf("Steer: %f\n", steering_angle);
                 throttle = 0.01;
             }
 
