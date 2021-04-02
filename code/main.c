@@ -132,7 +132,7 @@ int main(int argc, char const *argv[])
             else
             {
                 /* At 30fps, dt is 33 milliseconds. */
-                steer_frac_raw = pid_step_steer(target, 0.0f, (1.0f / 30.0f));
+                steer_frac_raw = -pid_step_steer(target, 0.0f, (1.0f / 30.0f));
                 throttle_frac_raw = 0.01f;
                 printf("steer %f (%f)\n", steer_frac_raw, target);
             }
