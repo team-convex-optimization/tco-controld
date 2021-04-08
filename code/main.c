@@ -41,13 +41,14 @@ static void handle_signals(int sig)
             log_error("sem_post: %s", strerror(errno));
         }
     }
+
     if (sem_wait(shmem_sem_control) == -1)
     {
         log_error("sem_wait: %s", strerror(errno));
         exit(0);
     }
-    shmem_control_open = 1;
     /* START: Critical section */
+    shmem_control_open = 1;
     shmem_control->ch[0].active = 0;
     shmem_control->ch[0].pulse_frac = 0;
     shmem_control->ch[1].active = 0;
@@ -92,8 +93,8 @@ int main(int argc, char const *argv[])
     float steer_frac_raw = 0;
     float throttle_frac_raw = 0;
 
-    float target = 0;
-    uint8_t target_valid = 0;
+    float target_pos = 0;
+    float target_speed = 0;
     uint32_t frame_id = 0;
     uint32_t frame_id_last = 0;
     while (1)
@@ -105,8 +106,8 @@ int main(int argc, char const *argv[])
         }
         /* START: Critical section */
         shmem_plan_open = 1;
-        target_valid = shmem_plan->valid;
-        target = shmem_plan->target;
+        target_pos = shmem_plan->target_pos;
+        target_speed = shmem_plan->target_speed;
         frame_id = shmem_plan->frame_id;
         /* END: Critical section */
         if (sem_post(shmem_sem_plan) == -1)
@@ -122,42 +123,39 @@ int main(int argc, char const *argv[])
         }
         frame_id_last = frame_id;
 
-        if (target_valid)
+        if (target_pos > 1.0f || target_pos < -1.0f)
         {
-            if (target > 1.0f || target < -1.0f)
-            {
-                steer_frac_raw = 0.0f;
-                throttle_frac_raw = 0.0f;
-            }
-            else
-            {
-                /* At 30fps, dt is 33 milliseconds. */
-                steer_frac_raw = -pid_step_steer(target, 0.0f, (1.0f / 30.0f));
-                throttle_frac_raw = 0.01f;
-                printf("steer %f (%f)\n", steer_frac_raw, target);
-            }
-
-            if (sem_wait(shmem_sem_control) == -1)
-            {
-                log_error("sem_wait: %s", strerror(errno));
-                goto handle_error_and_exit;
-            }
-            /* START: Critical section */
-            shmem_control_open = 1;
-            shmem_control->valid = 1;
-            shmem_control->ch[0].active = 1;
-            shmem_control->ch[0].pulse_frac = (throttle_frac_raw + 1.0f) / 2.0f;
-
-            shmem_control->ch[1].active = 1;
-            shmem_control->ch[1].pulse_frac = (steer_frac_raw + 1.0f) / 2.0f;
-            /* END: Critical section */
-            if (sem_post(shmem_sem_control) == -1)
-            {
-                log_error("sem_post: %s", strerror(errno));
-                goto handle_error_and_exit;
-            }
-            shmem_control_open = 0;
+            steer_frac_raw = 0.0f;
+            throttle_frac_raw = 0.0f;
         }
+        else
+        {
+            /* At 30fps, dt is 33 milliseconds. */
+            /* TODO: Measure the time between frames instead of relying on a constant. */
+            steer_frac_raw = -pid_step_steer(target_pos, 0.0f, (1.0f / 30.0f));
+            throttle_frac_raw = 0.01f;
+            printf("steer %f (%f)\n", steer_frac_raw, target_pos);
+        }
+
+        if (sem_wait(shmem_sem_control) == -1)
+        {
+            log_error("sem_wait: %s", strerror(errno));
+            goto handle_error_and_exit;
+        }
+        /* START: Critical section */
+        shmem_control_open = 1;
+        shmem_control->ch[0].active = 1;
+        shmem_control->ch[0].pulse_frac = (throttle_frac_raw + 1.0f) / 2.0f;
+
+        shmem_control->ch[1].active = 1;
+        shmem_control->ch[1].pulse_frac = (steer_frac_raw + 1.0f) / 2.0f;
+        /* END: Critical section */
+        if (sem_post(shmem_sem_control) == -1)
+        {
+            log_error("sem_post: %s", strerror(errno));
+            goto handle_error_and_exit;
+        }
+        shmem_control_open = 0;
     }
 
     return 0;
