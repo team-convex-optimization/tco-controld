@@ -130,10 +130,10 @@ int main(int argc, char const *argv[])
         }
         else
         {
-            /* At 30fps, dt is 33 milliseconds. */
+            /* At 22fps, dt is 33 milliseconds. */
             /* TODO: Measure the time between frames instead of relying on a constant. */
-            steer_frac_raw = -pid_step_steer(target_pos, 0.0f, (1.0f / 30.0f));
-            throttle_frac_raw = 0.01f;
+            steer_frac_raw = -pid_step_steer(target_pos, 0.0f, (1.0f / 22.0f));
+            throttle_frac_raw = target_speed; //TODO: Use PID
             printf("steer %f (%f)\n", steer_frac_raw, target_pos);
         }
 
