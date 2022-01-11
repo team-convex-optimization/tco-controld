@@ -18,6 +18,7 @@ clang \
     ../code/*.c \
     -l rt \
     -l pthread \
+	-lm \
     tco_libd.a \
     -o tco_controld.bin
 popd

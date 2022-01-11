@@ -5,6 +5,7 @@
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
+#include <math.h>
 
 #include "tco_libd.h"
 #include "tco_shmem.h"
@@ -57,10 +58,23 @@ static void handle_signals(int sig)
     if (sem_post(shmem_sem_control) == -1)
     {
         log_error("sem_post: %s", strerror(errno));
-        exit(0); /* XXX: This can potentially lead to deadlocks. */
+        // exit(0); /* XXX: This can potentially lead to deadlocks. */
     }
     shmem_control_open = 0;
     exit(0);
+}
+
+/**
+ * @brief apply sigmoid activation on @p x with curvature defined with @p sense
+ * @param x input
+ * @param sense the avg gradient of sigmoid function (factor of x)
+ * @result A function that follow a sigmoid function
+ * @note LaTeX : `f\left(x\right)\:=\:\left(\frac{1}{1+e^{-sx}}-.5\right)\cdot 2`
+*/
+float sigmoid_acvitvation(float x, float sense) {
+	float e = 2.71828; /* Eulers Number */
+	float denom = 1 + powf(e, (sense * x) * -1); /* Defined in `math.h` stdlib */
+	return ((1/denom) - 0.5) * 2;
 }
 
 int main(int argc, char const *argv[])
@@ -123,19 +137,12 @@ int main(int argc, char const *argv[])
         }
         frame_id_last = frame_id;
 
-        if (target_pos > 1.0f || target_pos < -1.0f)
-        {
-            steer_frac_raw = 0.0f;
-            throttle_frac_raw = 0.0f;
-        }
-        else
-        {
-            /* At 22fps, dt is 33 milliseconds. */
-            /* TODO: Measure the time between frames instead of relying on a constant. */
-            steer_frac_raw = -pid_step_steer(target_pos, 0.0f, (1.0f / 22.0f));
-            throttle_frac_raw = target_speed; //TODO: Use PID
-            printf("steer %f (%f)\n", steer_frac_raw, target_pos);
-        }
+        /* At 22fps, dt is 33 milliseconds. */
+        /* TODO: Measure the time between frames instead of relying on a constant. */
+        steer_frac_raw = -pid_step_steer(target_pos, 0.0f, (1.0f / 21.0f));
+        throttle_frac_raw = -pid_step_throttle(target_speed, 0.0f, (1.0f / 21.0f)); //1 - fabs(sigmoid_acvitvation(steer_frac_raw, 3.0f)); //TODO: Use PID
+        throttle_frac_raw *= 0.3;
+        printf("steer %f and throttle %f(%f)\n", steer_frac_raw, throttle_frac_raw, target_speed);
 
         if (sem_wait(shmem_sem_control) == -1)
         {

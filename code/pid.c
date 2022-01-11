@@ -8,13 +8,13 @@ static float pid_eprev_steer = 0;
 static float pid_eint_throttle = 0;
 static float pid_eprev_throttle = 0;
 
-static float const pid_kp_steer = 1.0;
-static float const pid_ki_steer = 0.0;
-static float const pid_kd_steer = 0.6;
+static float const pid_kp_steer = 0.85f;
+static float const pid_ki_steer = 0.35f;
+static float const pid_kd_steer = 0.06f;
 
-static float const pid_kp_throttle = 1;
-static float const pid_ki_throttle = 0;
-static float const pid_kd_throttle = 0;
+static float const pid_kp_throttle = 0.8f;
+static float const pid_ki_throttle = 0.0f;
+static float const pid_kd_throttle = 0.4f;
 
 /**
  * @brief Slightly improved PID controller.
