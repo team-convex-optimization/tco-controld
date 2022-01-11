@@ -64,19 +64,6 @@ static void handle_signals(int sig)
     exit(0);
 }
 
-/**
- * @brief apply sigmoid activation on @p x with curvature defined with @p sense
- * @param x input
- * @param sense the avg gradient of sigmoid function (factor of x)
- * @result A function that follow a sigmoid function
- * @note LaTeX : `f\left(x\right)\:=\:\left(\frac{1}{1+e^{-sx}}-.5\right)\cdot 2`
-*/
-float sigmoid_acvitvation(float x, float sense) {
-	float e = 2.71828; /* Eulers Number */
-	float denom = 1 + powf(e, (sense * x) * -1); /* Defined in `math.h` stdlib */
-	return ((1/denom) - 0.5) * 2;
-}
-
 int main(int argc, char const *argv[])
 {
     struct sigaction sa;
@@ -140,8 +127,8 @@ int main(int argc, char const *argv[])
         /* At 22fps, dt is 33 milliseconds. */
         /* TODO: Measure the time between frames instead of relying on a constant. */
         steer_frac_raw = -pid_step_steer(target_pos, 0.0f, (1.0f / 21.0f));
-        throttle_frac_raw = -pid_step_throttle(target_speed, 0.0f, (1.0f / 21.0f)); //1 - fabs(sigmoid_acvitvation(steer_frac_raw, 3.0f)); //TODO: Use PID
-        throttle_frac_raw *= 0.3;
+        throttle_frac_raw = -pid_step_throttle(target_speed, 0.0f, (1.0f / 21.0f)); 
+        throttle_frac_raw *= 0.35; /* TODO: Fix me */
         printf("steer %f and throttle %f(%f)\n", steer_frac_raw, throttle_frac_raw, target_speed);
 
         if (sem_wait(shmem_sem_control) == -1)
