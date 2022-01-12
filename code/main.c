@@ -11,7 +11,6 @@
 #include "tco_shmem.h"
 
 #include "pid.h"
-#include "plot.h"
 
 int log_level = LOG_DEBUG | LOG_ERROR | LOG_INFO;
 
@@ -80,13 +79,6 @@ int main(int argc, char const *argv[])
         return EXIT_FAILURE;
     }
 
-    /* TODO: enable/disable the plotter with command line args */
-    if (plot_init() != 0) {
-        printf("Failed to initialize the plotter\n");
-    } else {
-        printf("Use `gnuplot -e 'PID_DATA=%s' pid_plotter.gp` to plot. \n", FILENAME);
-    }
-
     if (shmem_map(TCO_SHMEM_NAME_CONTROL, TCO_SHMEM_SIZE_CONTROL, TCO_SHMEM_NAME_SEM_CONTROL, O_RDWR, (void **)&shmem_control, &shmem_sem_control) != 0)
     {
         log_error("Failed to map control shmem into process memory");
@@ -132,7 +124,6 @@ int main(int argc, char const *argv[])
         }
         frame_id_last = frame_id;
 
-        /* At 22fps, dt is 33 milliseconds. */
         /* TODO: Measure the time between frames instead of relying on a constant. */
         steer_frac_raw = -pid_step_steer(target_pos, 0.0f, (1.0f / 21.0f));
         throttle_frac_raw = -pid_step_throttle(target_speed, 0.0f, (1.0f / 21.0f)); 
