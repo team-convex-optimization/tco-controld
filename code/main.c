@@ -11,6 +11,7 @@
 #include "tco_shmem.h"
 
 #include "pid.h"
+#include "plot.h"
 
 int log_level = LOG_DEBUG | LOG_ERROR | LOG_INFO;
 
@@ -75,8 +76,15 @@ int main(int argc, char const *argv[])
 
     if (log_init("controld", "./log.txt") != 0)
     {
-        printf("Failed to initialize the logger");
+        printf("Failed to initialize the logger\n");
         return EXIT_FAILURE;
+    }
+
+    /* TODO: enable/disable the plotter with command line args */
+    if (plot_init() != 0) {
+        printf("Failed to initialize the plotter\n");
+    } else {
+        printf("Use `gnuplot -e 'PID_DATA=%s' pid_plotter.gp` to plot. \n", FILENAME);
     }
 
     if (shmem_map(TCO_SHMEM_NAME_CONTROL, TCO_SHMEM_SIZE_CONTROL, TCO_SHMEM_NAME_SEM_CONTROL, O_RDWR, (void **)&shmem_control, &shmem_sem_control) != 0)
@@ -129,7 +137,6 @@ int main(int argc, char const *argv[])
         steer_frac_raw = -pid_step_steer(target_pos, 0.0f, (1.0f / 21.0f));
         throttle_frac_raw = -pid_step_throttle(target_speed, 0.0f, (1.0f / 21.0f)); 
         throttle_frac_raw *= 0.35; /* TODO: Fix me */
-        printf("steer %f and throttle %f(%f)\n", steer_frac_raw, throttle_frac_raw, target_speed);
 
         if (sem_wait(shmem_sem_control) == -1)
         {

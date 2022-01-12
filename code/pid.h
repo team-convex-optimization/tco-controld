@@ -1,6 +1,8 @@
 #ifndef _PID_H_
 #define _PID_H_
 
+#include "plot.h"
+
 /**
  * @brief Step the PID controller for steering.
  * @param steer_desired Between -1.0 (all the way left) and 1.0 (all the way right)
