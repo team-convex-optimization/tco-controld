@@ -3,8 +3,8 @@
 int plot_init() {
     state.step = 0;
     state.fail = 0;
-    state.line = {0, 0, 0, 0};
-    //open file
+
+    /* Open file */
     state.file = fopen(FILENAME, "w");
     if (state.file == NULL) {
         fprintf(stderr, "Failed to instantiate the PID_value logging \n");
@@ -25,6 +25,7 @@ void plot_draw(void) {
     int ret = fwrite(to_write, sizeof(float), 4, state.file);
     if (ret == 0) {
         fprintf(stderr, "Could not write to file \n");
+        state.fail = 1;
     }
 }
 
