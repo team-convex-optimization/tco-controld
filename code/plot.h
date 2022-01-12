@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 
 struct plot_state {
     unsigned int step;

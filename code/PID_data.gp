@@ -1,16 +1,24 @@
-# Create a continuous plot for the PID metrics. use 'gnuplot -e 'PID_DATA=<filepath>' <script_name>
-
-set terminal dumb size 120, 30; 
-set autoscale; 
-
-set title "GnuPlot - Fan Speed  and CPU Temperature"
+set title "GnuPlot - Test"
 set ylabel "Factor"
 set y2tics
-set xlabel "Time (step)
+set xlabel "Time (step)"
+
+x = 0
+MAX_WINDOW = 300
+
+TMP = real(system("tail -n 300 ../pid_data.txt"))
+
+set yrange [-2:2]
+set xrange [0:MAX_WINDOW]
+
+plot TMP using 1:2 with lines title "P" , \
+TMP using 1:3 with lines title "I", \
+TMP using 1:4 with lines title "D", \
+TMP using 1:5 with lines title "RES" 
 
 while (1) {
-	replot 'PID_DATA' using 1:2 with lines title "P",
- 	'PID_DATA' using 1:3 with lines title "I",
- 	'PID_DATA' using 1:4 with lines title "D",
- 	'PID_DATA' using 1:5 with lines title "RES"
+replot
 }
+
+
+
