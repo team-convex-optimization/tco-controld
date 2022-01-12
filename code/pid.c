@@ -26,6 +26,7 @@ static float const pid_kd_throttle = 0.4f;
  * @param dt Delta time since last step
  * @param eprev Previous proportional error.
  * @param eint Integral error.
+ * @param plot set to non-zero to plot
  * @return Control.
  */
 static float pid_step(
@@ -36,7 +37,8 @@ static float pid_step(
     float const desired,
     float const dt,
     float *const eprev,
-    float *const eint)
+    float *const eint,
+    int plot)
 {
     float const e = desired - current;
     float const edot = (e - *eprev) / dt;
@@ -55,6 +57,15 @@ static float pid_step(
         u = -1.0f;
     }
     *eprev = e;
+    
+    if (plot) {
+        plot_add_point(PROPORTIONAL, kp * e);
+        plot_add_point(INTEGRAL, ki * *eint);
+        plot_add_point(DERIVATIVE, kd * edot);
+        plot_add_point(RESULT, u);
+        plot_draw();
+    }
+    
     return u;
 }
 
@@ -70,7 +81,8 @@ float pid_step_steer(
                     steer_current,
                     dt,
                     &pid_eprev_steer,
-                    &pid_eint_steer);
+                    &pid_eint_steer,
+                    1);
 }
 
 float pid_step_throttle(
@@ -85,5 +97,6 @@ float pid_step_throttle(
                     throttle_current,
                     dt,
                     &pid_eprev_throttle,
-                    &pid_eint_throttle);
+                    &pid_eint_throttle,
+                    0);
 }
