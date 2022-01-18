@@ -6,11 +6,15 @@
 #include <errno.h>
 #include <signal.h>
 #include <math.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "tco_libd.h"
 #include "tco_shmem.h"
 
 #include "pid.h"
+
+#define NS_TO_S 1000000000.0f
 
 int log_level = LOG_DEBUG | LOG_ERROR | LOG_INFO;
 
@@ -20,7 +24,7 @@ static sem_t *shmem_sem_control;
 static sem_t *shmem_sem_plan;
 static uint8_t shmem_control_open = 0;
 static uint8_t shmem_plan_open = 0;
-
+struct timespec timer;
 /**
  * @brief Handler for signals. This ensures that deadlocks in shmems do not occur and  when
  * clontrold is closed, control shmem is reset.
@@ -64,6 +68,19 @@ static void handle_signals(int sig)
     exit(0);
 }
 
+/**
+ * @brief Get the elapsed time since last call. Global var @p timer keep track of last time.
+ * Will update @p timer on each call.
+ * @return float with elapsed time in seconds
+ */
+static float get_elapsed_time() {
+    struct timespec time_new;
+    clock_gettime(_POSIX_MONOTONIC_CLOCK, &time_new);
+    float res = (time_new.tv_nsec - timer.tv_nsec)/NS_TO_S;
+    timer.tv_nsec = time_new.tv_nsec; /* Only need to update ns as s is never used. This gives more precision */
+    return res;
+}
+
 int main(int argc, char const *argv[])
 {
     struct sigaction sa;
@@ -98,6 +115,11 @@ int main(int argc, char const *argv[])
     float target_speed = 0;
     uint32_t frame_id = 0;
     uint32_t frame_id_last = 0;
+
+    /* Start time */
+    float time_elapsed = 0.0f;
+    clock_gettime(_POSIX_MONOTONIC_CLOCK, &timer);
+
     while (1)
     {
         if (sem_wait(shmem_sem_plan) == -1)
@@ -124,10 +146,11 @@ int main(int argc, char const *argv[])
         }
         frame_id_last = frame_id;
 
-        /* TODO: Measure the time between frames instead of relying on a constant. */
-        steer_frac_raw = -pid_step_steer(target_pos, 0.0f, (1.0f / 21.0f));
-        throttle_frac_raw = -pid_step_throttle(target_speed, 0.0f, (1.0f / 21.0f)); 
-        throttle_frac_raw *= 0.35; /* TODO: Fix me */
+        time_elapsed = get_elapsed_time(); /* Get time elapsed */
+        printf("elapsed time is %f\n", time_elapsed);
+        steer_frac_raw = -pid_step_steer(target_pos, 0.0f, time_elapsed);
+        throttle_frac_raw = -pid_step_throttle(target_speed, 0.0f, time_elapsed); 
+        throttle_frac_raw *= 0.35; /* TODO: Fix me. Limit throttle */
 
         if (sem_wait(shmem_sem_control) == -1)
         {
