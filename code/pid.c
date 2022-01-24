@@ -8,9 +8,9 @@ static float pid_eprev_steer = 0;
 static float pid_eint_throttle = 0;
 static float pid_eprev_throttle = 0;
 
-static float const pid_kp_steer = 0.85f;
-static float const pid_ki_steer = 0.35f;
-static float const pid_kd_steer = 0.06f;
+static float const pid_kp_steer = 0.99f;
+static float const pid_ki_steer = 0.10f;
+static float const pid_kd_steer = 0.07f;
 
 static float const pid_kp_throttle = 0.8f;
 static float const pid_ki_throttle = 0.0f;
