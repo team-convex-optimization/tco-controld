@@ -15,6 +15,7 @@
 #include "pid.h"
 
 #define NS_TO_S 1000000000.0f
+#define MAX_RPM 2600.0f
 
 int log_level = LOG_DEBUG | LOG_ERROR | LOG_INFO;
 
@@ -115,6 +116,8 @@ int main(int argc, char const *argv[])
     float target_speed = 0;
     uint32_t frame_id = 0;
     uint32_t frame_id_last = 0;
+    double us_1 = 0;
+    double rpm = 0;
 
     /* Start time */
     float time_elapsed = 0.0f;
@@ -132,6 +135,8 @@ int main(int argc, char const *argv[])
         target_pos = shmem_plan->target_pos;
         target_speed = shmem_plan->target_speed;
         frame_id = shmem_plan->frame_id;
+	us_1 = shmem_plan->ultrasound_left;
+	rpm = shmem_plan->hall_effect_rpm;
         /* END: Critical section */
         if (sem_post(shmem_sem_plan) == -1)
         {
@@ -148,9 +153,14 @@ int main(int argc, char const *argv[])
 
         time_elapsed = get_elapsed_time(); /* Get time elapsed */
         steer_frac_raw = -pid_step_steer(target_pos, 0.0f, time_elapsed);
-        throttle_frac_raw = -pid_step_throttle(target_speed, 0.0f, time_elapsed); 
-        throttle_frac_raw *= 0.35; /* TODO: Fix me. Limit throttle */
-
+        //throttle_frac_raw = -pid_step_throttle(target_speed*MAX_RPM, (float)rpm, time_elapsed);
+	float desired_rpm_error = ((400.0f - (float)rpm) / MAX_RPM)*1.1;
+	
+	printf("rpm is %f error 1 is %f \n", rpm, desired_rpm_error);
+        throttle_frac_raw = -pid_step_throttle(desired_rpm_error, 0.0f, time_elapsed); 
+	printf("throttle frac raw is %f\n", throttle_frac_raw);
+	if (us_1 < 10.0f) 
+		throttle_frac_raw = -1.0f;
         if (sem_wait(shmem_sem_control) == -1)
         {
             log_error("sem_wait: %s", strerror(errno));
@@ -171,7 +181,7 @@ int main(int argc, char const *argv[])
         }
         shmem_control_open = 0;
     }
-
+	
     return 0;
 
 handle_error_and_exit:

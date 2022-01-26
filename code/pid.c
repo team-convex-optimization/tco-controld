@@ -12,9 +12,9 @@ static float const pid_kp_steer = 0.99f;
 static float const pid_ki_steer = 0.10f;
 static float const pid_kd_steer = 0.07f;
 
-static float const pid_kp_throttle = 0.8f;
-static float const pid_ki_throttle = 0.0f;
-static float const pid_kd_throttle = 0.4f;
+static float const pid_kp_throttle = 4.0f;
+static float const pid_ki_throttle = 2.0f;//6.0f;
+static float const pid_kd_throttle = 0.0f;//0.25f;
 
 /**
  * @brief Slightly improved PID controller.
