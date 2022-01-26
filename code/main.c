@@ -196,9 +196,10 @@ int main(int argc, char const *argv[])
             sensor_step_last = sensor_step;
         }
 
-        if (us_1 < EMERGENCY_STOP_DIST) /* Emergency stop */
+        if (us_1 < EMERGENCY_STOP_DIST) { /* Emergency stop */
+            printf("EMERGENCY STOP!\n");
             throttle_frac_raw = -1.0f;
-
+        }
         if (sem_wait(shmem_sem_control) == -1) /* Write to control shmem for actuation */
         {
             log_error("sem_wait: %s", strerror(errno));
@@ -218,6 +219,7 @@ int main(int argc, char const *argv[])
             goto handle_error_and_exit;
         }
         shmem_control_open = 0;
+	usleep(100);
     }
 	
     return 0;
