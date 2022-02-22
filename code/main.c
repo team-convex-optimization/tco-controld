@@ -16,12 +16,13 @@
 
 #ifdef __ARM_ARCH
     #define EMERGENCY_STOP_DIST (100.0f) /* CM */
+    #define MAX_RPM 2600.0f
 #else
     #define EMERGENCY_STOP_DIST (-1.0f) /* CM */
+    #define MAX_RPM 700.0f
 #endif
 
 #define NS_TO_S 1000000000.0f
-#define MAX_RPM 2600.0f
 
 int log_level = LOG_DEBUG | LOG_ERROR | LOG_INFO;
 

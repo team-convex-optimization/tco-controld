@@ -8,13 +8,25 @@ static float pid_eprev_steer = 0;
 static float pid_eint_throttle = 0;
 static float pid_eprev_throttle = 0;
 
+#ifdef __ARM_ARCH                           /* Steering PID values for sim or real car */
 static float const pid_kp_steer = 0.99f;
 static float const pid_ki_steer = 0.10f;
 static float const pid_kd_steer = 0.07f;
+#else
+static float const pid_kp_steer = 0.99f;
+static float const pid_ki_steer = 0.10f;
+static float const pid_kd_steer = 0.07f;
+#endif
 
+#ifdef __ARM_ARCH                            /* Throttle PID values for sim or real car */
 static float const pid_kp_throttle = 4.0f;
 static float const pid_ki_throttle = 2.0f;//6.0f;
 static float const pid_kd_throttle = 0.0f;//0.25f;
+#else
+static float const pid_kp_throttle = 0.7f;
+static float const pid_ki_throttle = 0.2f;
+static float const pid_kd_throttle = 0.05f;
+#endif
 
 /**
  * @brief Slightly improved PID controller.
