@@ -114,6 +114,12 @@ int main(int argc, char const *argv[])
         return EXIT_FAILURE;
     }
 
+    #ifdef __ARM_ARCH
+    log_info("Detected ARM Architecture... Loading target specification.");
+    #else
+    log_info("Detected non-ARM Architecture... Loading sim specification.");
+    #endif
+
     if (shmem_map(TCO_SHMEM_NAME_CONTROL, TCO_SHMEM_SIZE_CONTROL, TCO_SHMEM_NAME_SEM_CONTROL, O_RDWR, (void **)&shmem_control, &shmem_sem_control) != 0)
     {
         log_error("Failed to map control shmem into process memory");
@@ -225,7 +231,7 @@ int main(int argc, char const *argv[])
             goto handle_error_and_exit;
         }
         shmem_control_open = 0;
-	usleep(100);
+	    usleep(100);
     }
 	
     return 0;
