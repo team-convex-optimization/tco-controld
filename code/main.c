@@ -15,8 +15,8 @@
 #include "pid.h"
 
 #ifdef __ARM_ARCH
-    #define EMERGENCY_STOP_DIST (100.0f) /* CM */
-    #define MAX_RPM 2600.0f
+    #define EMERGENCY_STOP_DIST (-100.0f) /* CM */
+    #define MAX_RPM 700.0f
 #else
     #define EMERGENCY_STOP_DIST (-1.0f) /* CM */
     #define MAX_RPM 700.0f
@@ -37,6 +37,11 @@ static uint8_t shmem_plan_open = 0;
 static uint8_t shmem_sensor_open = 0;
 struct timespec timer_plan;
 struct timespec timer_sensor;
+
+float min(float a, float b) {
+    return (a < b) ? a : b;
+}
+
 /**
  * @brief Handler for signals. This ensures that deadlocks in shmems do not occur and  when
  * clontrold is closed, control shmem is reset.
@@ -72,8 +77,8 @@ static void handle_signals(int sig)
     }
     /* START: Critical section */
     shmem_control_open = 1;
-    shmem_control->ch[0].active = 0;
-    shmem_control->ch[0].pulse_frac = 0;
+    shmem_control->ch[0].active = 1;
+    shmem_control->ch[0].pulse_frac = 0.0f;
     shmem_control->ch[1].active = 0;
     shmem_control->ch[1].pulse_frac = 0;
     /* END: Critical section */
@@ -202,8 +207,9 @@ int main(int argc, char const *argv[])
 
         if (sensor_step != sensor_step_last) { /* Update the motor RPM everytime we get new reading */
             time_elapsed_sensor = get_elapsed_time(&timer_sensor); /* Get time elapsed */
+
             float desired_rpm = ((target_speed + 1)/2.0f) * MAX_RPM;
-	        float desired_rpm_error = ((desired_rpm - (float)rpm) / MAX_RPM);
+	    float desired_rpm_error = ((desired_rpm - (float)rpm) / MAX_RPM);
             throttle_frac_raw = -pid_step_throttle(desired_rpm_error, 0.0f, time_elapsed_sensor);
             sensor_step_last = sensor_step;
         }
@@ -220,7 +226,7 @@ int main(int argc, char const *argv[])
         /* START: Critical section */
         shmem_control_open = 1;
         shmem_control->ch[0].active = 1;
-        shmem_control->ch[0].pulse_frac = (throttle_frac_raw + 1.0f) / 2.0f;
+        shmem_control->ch[0].pulse_frac = min((throttle_frac_raw + 1.0f) / 2.0f, 0.7f);
 
         shmem_control->ch[1].active = 1;
         shmem_control->ch[1].pulse_frac = (steer_frac_raw + 1.0f) / 2.0f;
