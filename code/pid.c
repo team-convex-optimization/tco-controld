@@ -1,20 +1,33 @@
 #include "pid.h"
+#include "stdint.h"
 
-#define PID_EINT_MAX 0.2f
+#define PID_EINT_MAX 0.8f
 
 /* PID state */
 static float pid_eint_steer = 0;
 static float pid_eprev_steer = 0;
 static float pid_eint_throttle = 0;
 static float pid_eprev_throttle = 0;
+// 0.48, 0.08, 0.1
+#ifdef __ARM_ARCH                           /* Steering PID values for sim or real car */
+static float const pid_kp_steer = 0.6f; // 0.5f // s 0.35f: 0.6/0.08/0.12
+static float const pid_ki_steer = 0.08f; // 0.1f
+static float const pid_kd_steer = 0.12f; // 0.1f
+#else
+static float const pid_kp_steer = 0.99f;
+static float const pid_ki_steer = 0.10f;
+static float const pid_kd_steer = 0.07f;
+#endif
 
-static float const pid_kp_steer = 1.0;
-static float const pid_ki_steer = 0.0;
-static float const pid_kd_steer = 0.6;
-
-static float const pid_kp_throttle = 1;
-static float const pid_ki_throttle = 0;
-static float const pid_kd_throttle = 0;
+#ifdef __ARM_ARCH                            /* Throttle PID values for sim or real car */
+static float const pid_kp_throttle = 1.0f;
+static float const pid_ki_throttle = 0.01f;//6.0f;
+static float const pid_kd_throttle = 0.8f;//0.25f;
+#else
+static float const pid_kp_throttle = 0.6f;
+static float const pid_ki_throttle = 0.0f;
+static float const pid_kd_throttle = 0.0f;
+#endif
 
 /**
  * @brief Slightly improved PID controller.
@@ -40,12 +53,13 @@ static float pid_step(
 {
     float const e = desired - current;
     float const edot = (e - *eprev) / dt;
+    
     *eint = *eint + (e * dt);
     if (*eint > PID_EINT_MAX)
     {
         *eint = PID_EINT_MAX;
     }
-    float u = (kp * e) + (ki * *eint) + (kd * edot);
+    float u = kp * (e + (ki/kp * *eint) + (kd/kp * edot));
     if (u > 1.0f)
     {
         u = 1.0f;
@@ -55,6 +69,7 @@ static float pid_step(
         u = -1.0f;
     }
     *eprev = e;
+    
     return u;
 }
 
