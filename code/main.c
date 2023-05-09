@@ -16,15 +16,14 @@
 
 #ifdef __ARM_ARCH
     #define EMERGENCY_STOP_DIST ( -100.0f ) /* CM */
-    #define MAX_RPM 1000.0f
 #else
     #define EMERGENCY_STOP_DIST ( -1.0f ) /* CM */
-    #define MAX_RPM 700.0f
 #endif
 
-#define THROTTLE_MAX ( 0.45f )
-#define THROTTLE_LAP_OF_HONOR ( 0.3f )
-#define BOX_DISTANCE ( 120.0f )
+#define THROTTLE_MAX ( 0.3f ) // 0.35f is good
+#define THROTTLE_LAP_OF_HONOR ( 0.18f )
+#define BOX_DISTANCE ( 100.0f )
+#define STOP_DISTANCE ( 45.0f )
 #define NS_TO_S 1000000000.0f
 
 int log_level = LOG_DEBUG | LOG_ERROR | LOG_INFO;
@@ -208,17 +207,32 @@ int main(int argc, char const *argv[])
             time_elapsed_plan = get_elapsed_time(&timer_plan); /* Get time elapsed */
             steer_frac_raw = -pid_step_steer(target_pos, 0.0f, time_elapsed_plan);
             frame_id_last = frame_id;
-        }
 
-        if (sensor_step != sensor_step_last) /* Update the motor RPM everytime we get new reading */
+            /* update motor power */
+            throttle_frac_raw = -pid_step_throttle(target_speed, 0.0f, time_elapsed_plan);
+            throttle_frac_raw = lap_of_honor ? min(throttle_frac_raw, THROTTLE_LAP_OF_HONOR) : min(throttle_frac_raw, THROTTLE_MAX);
+            
+            printf("%f\n", us_1);
+            if (lap_of_honor && us_1 < BOX_DISTANCE) {
+                throttle_frac_raw = THROTTLE_LAP_OF_HONOR * (min(us_1, BOX_DISTANCE) / BOX_DISTANCE);
+            }
+
+            if (lap_of_honor && us_1 < STOP_DISTANCE) {
+                throttle_frac_raw = -1.0f;
+            }
+        }
+/*
+        if (sensor_step != sensor_step_last) // Update the motor RPM everytime we get new reading 
         {
-            time_elapsed_sensor = get_elapsed_time(&timer_sensor); /* Get time elapsed */
+            time_elapsed_sensor = get_elapsed_time(&timer_sensor); // Get time elapsed 
             float desired_rpm = ((target_speed + 1)/2.0f) * MAX_RPM;
             float desired_rpm_error = ((desired_rpm - (float)rpm) / MAX_RPM);
             throttle_frac_raw = -pid_step_throttle(desired_rpm_error, 0.0f, time_elapsed_sensor);
             throttle_frac_raw = min(throttle_frac_raw, THROTTLE_MAX);
+
     	    if (throttle_frac_raw < 0.0f)
             {
+                throttle_frac_raw *= 10.0f;
                 if (throttle_frac_raw < -1.0f) throttle_frac_raw = -1.0f;
             }
             if (lap_of_honor)
@@ -229,7 +243,9 @@ int main(int argc, char const *argv[])
                 throttle_frac_raw = -1.0f;
             }
             sensor_step_last = sensor_step;
+            // printf("(%d)Got throttle %f and steer %f\n", sensor_step, target_speed, target_pos);
         }
+*/
         if (us_1 < EMERGENCY_STOP_DIST) /* Emergency stop */
         {
             printf("EMERGENCY STOP!\n");
